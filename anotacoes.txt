@@ -1,0 +1,106 @@
+https://unform.dev
+-------------------------------------------------------------------------------------------------------------------------
+import {Form} from '@unform/web';
+-------------------------------------------------------------------------------------------------------------------------
+criar componentes de imputs:
+
+criar os arquivos inputs.js e index.js(exporta os componentes do formulario)
+
+No imput.js:
+
+import React, {useEffect, useRef} from 'react';
+import {useField} from '@unform/core';
+
+
+export default function Input ({name, ...rest}){
+    const {defaultValue, fieldName, registerField, error} = useField(name);
+
+    const inputRef = useRef(null);
+
+    useEffect(() => {
+       registerField({
+           name: fieldName,
+           ref: inputRef.current,
+           path: 'value'
+       })
+    }, [fieldName, registerField]);
+
+    return (
+        <input ref={inputRef} {...rest}/>
+    )
+}
+
+o name e o hoot a ser usado como propriedade obrigatoria, que e o nome do input
+
+no App.js:
+
+ <Form onSubmit = {handleSubmit}>
+          <Input name="name" />
+          <Input name="email" />
+          <Input name="password" />
+
+          <button type="submit">Enviar</button>
+ </Form>
+-------------------------------------------------------------------------------------------------------------------------
+import {Scope} from '@unform/core';
+
+usado para criar objeto
+-------------------------------------------------------------------------------------------------------------------------
+Validacao:
+
+fazer o import do {useRef} com o react no App.js
+
+criar a const formRef = useRef(null) e passar como referencia ref={formRef} no <Form />
+
+para setar a mensagem para um unico error usar o formRef.current.setFieldError('nome do campo', 'mensagem de erro') na 
+condicional dentro do handleSubmith(data)
+
+para setar erros com mais de um campo usar o .setErrors, ex:
+formRef.current.setErrors({
+	name: 'O nome e obrigatorio',
+	address: {
+		city: 'A cidade e obrigatoria'
+	}
+});
+
+no input.js criar uma div por fora do <input> e colocar {error && <span style={{color: 'cor'}}>{error}</span>}
+
+Usando a biblioteca yup
+
+import * as Yup from 'yup';
+
+dentro da funcao, que agora deve ser assincrona, handleSubimit
+
+   try {
+
+      const schema = Yup.object().shape({
+        name: Yup.string().required('O nome e obrigatorio'),
+        email: Yup.string()
+          .email('Digite um email valido')
+          .required('O email e obrigatorio'),
+        addres: Yup.object().shape({
+          city: Yup.string()
+            .min(3, 'No minimo 3 caracteres')
+            .required('A cidade e obrigatoria')
+        })
+      })
+
+      await schema.validate(data, {
+        abortEarly: false, //impede que o Yup nao complete toda a validacao por encontrar uma no comeco do codigo
+      })
+
+      reset();
+    } catch (err) {
+      if (err instanceof Yup.ValidationError){
+        const errorMessages = {};
+	
+	err.inner.forEach(error => {
+		errorMessages[error.path] = error.message;
+	})
+
+	formRef.current.serErrors(errorMessages);
+      }
+    }
+--------------------------------------------------------------------------------------------------------------------------
+Alem do data, a funcao handleSubmith recebe um outra funcao como objeto chamada reset, handleSubmith(data, {reset}) que e
+utilizada para limpar os campos do input
